@@ -73,6 +73,8 @@ const TEAM_ALIASES = {
   nforest: 'Nottingham Forest',
   westham: 'West Ham United',
   westhamunited: 'West Ham United',
+  sunderlan: 'Sunderland',
+
   wolves: 'Wolverhampton Wanderers',
   wolverhampton: 'Wolverhampton Wanderers',
 };
