@@ -74,7 +74,6 @@ const TEAM_ALIASES = {
   westham: 'West Ham United',
   westhamunited: 'West Ham United',
   sunderlan: 'Sunderland',
-
   wolves: 'Wolverhampton Wanderers',
   wolverhampton: 'Wolverhampton Wanderers',
 };
