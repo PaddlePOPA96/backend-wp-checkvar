@@ -484,6 +484,10 @@ app.get('/api/matches', (req, res) => {
     (m) => parseDateWIB(m.date)
   );
 
+  if (!todayWIB) {
+    return res.status(500).json({ error: 'Tanggal hari ini tidak valid (WIB).' });
+  }
+
   const today_matches = [];
   const last_matches = [];
   const next_matches = [];
@@ -491,7 +495,7 @@ app.get('/api/matches', (req, res) => {
   matches.forEach((m) => {
     const d = parseDateWIB(m.date);
     if (!d) return;
-    if (d.getTime() === todayUTC.getTime()) {
+    if (d.getTime() === todayWIB.getTime()) {
       today_matches.push(m);
     } else if (d >= pastWindow && d <= yesterday) {
       last_matches.push(m);
