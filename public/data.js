@@ -127,6 +127,8 @@
     } catch (err) {
       console.error(err);
       showAuthError(err.message || 'Login gagal');
+      // Alihkan ke halaman kosong jika gagal login
+      window.location.href = '/kosong.html';
     }
   }
 
@@ -146,6 +148,11 @@
       showAuthError('');
       if (els.authForm) els.authForm.reset();
     }
+  }
+
+  // Backward alias for old references
+  function showAuthOverlay(show) {
+    toggleAuthOverlay(show);
   }
 
   function showAuthError(msg) {
