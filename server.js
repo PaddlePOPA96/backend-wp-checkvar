@@ -12,6 +12,8 @@ const port = process.env.PORT || 3000;
 
 const MATCHES_FILE = path.join(__dirname, 'matches.json');
 const LOGO_ROOT = path.join(__dirname, 'logo');
+// Vercel serverless filesystem is read-only; skip local writes there.
+const IS_READ_ONLY_FS = !!process.env.VERCEL;
 
 const norm = (s = '') => s.toLowerCase().replace(/\s+/g, '');
 const sanitize = (s = '') => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -155,7 +157,12 @@ function saveMatches(cb) {
     if (cb) cb(err || null);
   };
 
-  const writeFile = () =>
+  const writeFile = () => {
+    if (IS_READ_ONLY_FS) {
+      // Di Vercel tidak bisa menulis ke disk; cukup log dan selesai.
+      console.log('Skip menulis matches.json (read-only filesystem).');
+      return finish(null);
+    }
     fs.writeFile(MATCHES_FILE, JSON.stringify(matchData, null, 2), 'utf8', (err) => {
       if (err) return finish(err);
       try {
@@ -165,6 +172,7 @@ function saveMatches(cb) {
       console.log('matches.json tersimpan.');
       return finish(null);
     });
+  };
 
   if (useFirestore && firestore) {
     firestore
