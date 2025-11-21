@@ -431,26 +431,30 @@ app.get('/api/matches', (req, res) => {
   refreshMatchesIfChanged();
   normalizeAllMatches();
   const league = req.query.league;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const pastWindow = new Date(today);
-  pastWindow.setDate(pastWindow.getDate() - 7);
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const nextWindow = new Date(today);
-  nextWindow.setDate(nextWindow.getDate() + 7);
+  // Gunakan perbandingan berbasis UTC agar tidak meleset sehari akibat zona waktu.
+  const now = new Date();
+  const todayUTC = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  const pastWindow = new Date(todayUTC);
+  pastWindow.setUTCDate(pastWindow.getUTCDate() - 7);
+  const yesterday = new Date(todayUTC);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const tomorrow = new Date(todayUTC);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  const nextWindow = new Date(todayUTC);
+  nextWindow.setUTCDate(nextWindow.getUTCDate() + 7);
 
-  const normalizeDate = (dateStr) => {
-    const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) return null;
-    d.setHours(0, 0, 0, 0);
-    return d;
+  const parseDateUTC = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = String(dateStr).split('T')[0].split('-').map(Number);
+    if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return null;
+    const [y, m, d] = parts;
+    return new Date(Date.UTC(y, m - 1, d));
   };
 
   const matches = filterMatchesByLeague(matchData.matches || [], league).filter(
-    (m) => normalizeDate(m.date)
+    (m) => parseDateUTC(m.date)
   );
 
   const today_matches = [];
@@ -458,9 +462,9 @@ app.get('/api/matches', (req, res) => {
   const next_matches = [];
 
   matches.forEach((m) => {
-    const d = normalizeDate(m.date);
+    const d = parseDateUTC(m.date);
     if (!d) return;
-    if (d.getTime() === today.getTime()) {
+    if (d.getTime() === todayUTC.getTime()) {
       today_matches.push(m);
     } else if (d >= pastWindow && d <= yesterday) {
       last_matches.push(m);
