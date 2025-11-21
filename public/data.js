@@ -1,11 +1,12 @@
 (() => {
-  const state = { matches: [], editingId: null, authed: false, auth: null, user: null };
+  const ADMIN_HASH = '09ef66ca40880961950246d9a837f56aab469f3b70a1c9a89bdfc7a8f6d0789a'; // sha256("admin:adminadmin123")
+  const state = { matches: [], editingId: null, authed: false, user: null };
   const els = {};
 
   document.addEventListener('DOMContentLoaded', () => {
     cacheEls();
     bindEvents();
-    initAuth();
+    showAuthOverlay(true);
   });
 
   function cacheEls() {
@@ -104,51 +105,22 @@
     }
   }
 
-  function initAuth() {
-    if (typeof firebase === 'undefined') {
-      showAuthError('Firebase SDK belum termuat.');
-      return;
-    }
-    if (window.firebaseConfig && firebase?.apps?.length === 0) {
-      try {
-        firebase.initializeApp(window.firebaseConfig);
-      } catch (err) {
-        console.error(err);
-        showAuthError('Konfigurasi Firebase tidak valid.');
-        return;
-      }
-    } else if (!window.firebaseConfig) {
-      showAuthError('Firebase config belum diisi di firebase-config.js');
-      return;
-    }
-    state.auth = firebase.auth();
-    state.auth.onAuthStateChanged((user) => {
-      state.user = user;
-      state.authed = !!user;
-      toggleAuthOverlay(!user);
-      if (user) {
-        setStatus('Login sebagai ' + (user.email || 'user'), false);
-        loadMatches();
-      } else {
-        setStatus('Login untuk melihat data', true);
-      }
-    });
-  }
-
   async function login() {
-    if (!state.auth) {
-      showAuthError('Auth belum siap; periksa konfigurasi.');
-      return;
-    }
-    const email = (els.authEmail?.value || '').trim();
+    const username = (els.authEmail?.value || '').trim();
     const pass = els.authPassword?.value || '';
-    if (!email || !pass) {
-      showAuthError('Email dan password wajib diisi.');
+    if (!username || !pass) {
+      showAuthError('Username dan password wajib diisi.');
       return;
     }
     try {
-      showAuthError('');
-      await state.auth.signInWithEmailAndPassword(email, pass);
+      showAuthError('Memeriksa...', false);
+      const hash = await sha256(`${username}:${pass}`);
+      if (hash !== ADMIN_HASH) throw new Error('Kredensial salah');
+      state.authed = true;
+      state.user = { username };
+      toggleAuthOverlay(false);
+      setStatus('Login sebagai ' + username, false);
+      await loadMatches();
     } catch (err) {
       console.error(err);
       showAuthError(err.message || 'Login gagal');
@@ -156,12 +128,10 @@
   }
 
   async function logout() {
-    if (!state.auth) return;
-    try {
-      await state.auth.signOut();
-    } catch (err) {
-      console.error(err);
-    }
+    state.authed = false;
+    state.user = null;
+    toggleAuthOverlay(true);
+    setStatus('Logout', false);
   }
 
   function toggleAuthOverlay(show) {
@@ -502,5 +472,15 @@
       console.error(err);
       els.aiStatus.textContent = err.message;
     }
+  }
+
+  async function sha256(str) {
+    const enc = new TextEncoder();
+    const buf = enc.encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    const hex = Array.from(new Uint8Array(hash))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    return hex;
   }
 })();
