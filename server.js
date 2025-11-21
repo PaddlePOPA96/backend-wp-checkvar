@@ -73,7 +73,12 @@ const TEAM_ALIASES = {
   nforest: 'Nottingham Forest',
   westham: 'West Ham United',
   westhamunited: 'West Ham United',
+  sunderland: 'Sunderland',
   sunderlan: 'Sunderland',
+  sunderlandafc: 'Sunderland',
+  sunderlandu21: 'Sunderland',
+  sunderlandwomen: 'Sunderland',
+  sunderlandafcwomen: 'Sunderland',
   wolves: 'Wolverhampton Wanderers',
   wolverhampton: 'Wolverhampton Wanderers',
 };
@@ -286,7 +291,7 @@ function findLogoPath(teamName, competition) {
       for (const f of files) {
         const nameNoExt = f.replace(/\.png$/i, '');
         const sani = sanitize(nameNoExt);
-        if (sani === target) {
+        if (sani === target || target.includes(sani) || sani.includes(target)) {
           return path.join('logo', league, f).replace(/\\/g, '/');
         }
         const dist = levenshtein(sani, target);
@@ -442,30 +447,41 @@ app.get('/api/matches', (req, res) => {
     const sorted = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
     return res.json({ last_updated: matchData.last_updated, matches: sorted });
   }
-  // Gunakan perbandingan berbasis UTC agar tidak meleset sehari akibat zona waktu.
-  const now = new Date();
-  const todayUTC = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  );
-  const pastWindow = new Date(todayUTC);
-  pastWindow.setUTCDate(pastWindow.getUTCDate() - 7);
-  const yesterday = new Date(todayUTC);
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-  const tomorrow = new Date(todayUTC);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  const nextWindow = new Date(todayUTC);
-  nextWindow.setUTCDate(nextWindow.getUTCDate() + 7);
-
-  const parseDateUTC = (dateStr) => {
+  // Bandingkan berdasarkan zona waktu utama pemakai (WIB) supaya tidak geser sehari.
+  const TZ = 'Asia/Jakarta';
+  const parseDateWIB = (dateStr) => {
     if (!dateStr) return null;
     const parts = String(dateStr).split('T')[0].split('-').map(Number);
     if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return null;
     const [y, m, d] = parts;
-    return new Date(Date.UTC(y, m - 1, d));
+    // Interpretasi tanggal sebagai pukul 00:00 di WIB.
+    const iso = `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(
+      2,
+      '0'
+    )}T00:00:00+07:00`;
+    const dt = new Date(iso);
+    return Number.isNaN(dt.getTime()) ? null : dt;
   };
 
+  const formatTodayWIB = () => {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: TZ,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    return formatter.format(new Date()); // "YYYY-MM-DD"
+  };
+
+  const todayWIB = parseDateWIB(formatTodayWIB());
+  const addDays = (date, days) => new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+  const pastWindow = addDays(todayWIB, -7);
+  const yesterday = addDays(todayWIB, -1);
+  const tomorrow = addDays(todayWIB, 1);
+  const nextWindow = addDays(todayWIB, 7);
+
   const matches = filterMatchesByLeague(matchData.matches || [], league).filter(
-    (m) => parseDateUTC(m.date)
+    (m) => parseDateWIB(m.date)
   );
 
   const today_matches = [];
@@ -473,7 +489,7 @@ app.get('/api/matches', (req, res) => {
   const next_matches = [];
 
   matches.forEach((m) => {
-    const d = parseDateUTC(m.date);
+    const d = parseDateWIB(m.date);
     if (!d) return;
     if (d.getTime() === todayUTC.getTime()) {
       today_matches.push(m);
