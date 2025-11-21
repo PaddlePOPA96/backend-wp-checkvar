@@ -20,6 +20,17 @@
     els.lastUpdated = document.getElementById('lastUpdated');
     els.refreshBtn = document.getElementById('refreshBtn');
     els.resetFormBtn = document.getElementById('resetFormBtn');
+    // Modal
+    els.editModal = document.getElementById('editModal');
+    els.editForm = document.getElementById('editForm');
+    els.editFormStatus = document.getElementById('editFormStatus');
+    els.closeEditModal = document.getElementById('closeEditModal');
+    els.cancelEditModal = document.getElementById('cancelEditModal');
+    // Confirm modal
+    els.confirmModal = document.getElementById('confirmModal');
+    els.confirmMessage = document.getElementById('confirmMessage');
+    els.confirmOk = document.getElementById('confirmOk');
+    els.confirmCancel = document.getElementById('confirmCancel');
   }
 
   function bindEvents() {
@@ -39,6 +50,11 @@
         els.form.reset();
       });
     }
+    if (els.editForm) {
+      els.editForm.addEventListener('submit', onSubmitEdit);
+    }
+    if (els.closeEditModal) els.closeEditModal.addEventListener('click', hideEditModal);
+    if (els.cancelEditModal) els.cancelEditModal.addEventListener('click', hideEditModal);
   }
 
   async function loadMatches() {
@@ -71,8 +87,9 @@
       renderEmpty('Belum ada data');
       return;
     }
+    const sorted = sortByPriority(state.matches);
     els.tableBody.innerHTML = '';
-    state.matches.forEach((m) => {
+    sorted.forEach((m) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${escapeHtml(m.date || '-')}</td>
@@ -141,10 +158,10 @@
 
   function startEdit(match) {
     state.editingId = match.id;
-    if (els.formTitle) els.formTitle.textContent = 'Edit Match';
-    if (els.submitBtn) els.submitBtn.textContent = 'Update';
-    if (els.cancelEdit) els.cancelEdit.classList.remove('hidden');
-    fillFormFromMatch(match);
+    confirmAction('Edit data ini?', () => {
+      fillEditForm(match);
+      showEditModal();
+    });
   }
 
   function cancelEdit() {
@@ -168,25 +185,28 @@
   }
 
   async function deleteMatch(match) {
-    const ok = window.confirm(`Hapus match ${match.home_team?.name} vs ${match.away_team?.name}?`);
-    if (!ok) return;
-    try {
-      setStatus('Menghapus...', false);
-      const res = await fetch('/api/matches/' + encodeURIComponent(match.id), {
-        method: 'DELETE',
-        headers: { Accept: 'application/json' },
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.error || `Gagal hapus (${res.status})`);
+    confirmAction(
+      `Hapus match ${match.home_team?.name || ''} vs ${match.away_team?.name || ''}?`,
+      async () => {
+        try {
+          setStatus('Menghapus...', false);
+          const res = await fetch('/api/matches/' + encodeURIComponent(match.id), {
+            method: 'DELETE',
+            headers: { Accept: 'application/json' },
+          });
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            throw new Error(errBody.error || `Gagal hapus (${res.status})`);
+          }
+          setStatus('Berhasil dihapus', false);
+          if (state.editingId === match.id) cancelEdit();
+          await loadMatches();
+        } catch (err) {
+          console.error(err);
+          setStatus(err.message || 'Gagal menghapus', true);
+        }
       }
-      setStatus('Berhasil dihapus', false);
-      if (state.editingId === match.id) cancelEdit();
-      await loadMatches();
-    } catch (err) {
-      console.error(err);
-      setStatus(err.message || 'Gagal menghapus', true);
-    }
+    );
   }
 
   function formatScore(m) {
@@ -228,5 +248,133 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  // Sorting priority: today first, future next (nearest first), past after (recent first)
+  function sortByPriority(list) {
+    const todayUTC = getTodayUTC();
+    return [...list].sort((a, b) => {
+      const da = parseDateUTC(a.date);
+      const db = parseDateUTC(b.date);
+      const wa = weight(da, todayUTC);
+      const wb = weight(db, todayUTC);
+      if (wa !== wb) return wa - wb;
+      return (da || 0) - (db || 0);
+    });
+  }
+
+  function weight(d, todayUTC) {
+    if (!d) return 1e15;
+    const t = d.getTime();
+    const today = todayUTC.getTime();
+    if (t === today) return 0;
+    if (t > today) return t - today + 1; // future; nearer is smaller
+    return 1e12 + (today - t); // past; pushed down
+  }
+
+  function getTodayUTC() {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  }
+
+  function parseDateUTC(dateStr) {
+    if (!dateStr) return null;
+    const parts = String(dateStr).split('T')[0].split('-').map(Number);
+    if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return null;
+    const [y, m, d] = parts;
+    return new Date(Date.UTC(y, m - 1, d));
+  }
+
+  // Modal helpers
+  function showEditModal() {
+    if (!els.editModal) return;
+    document.body.classList.add('modal-open');
+    els.editModal.classList.remove('hidden');
+    setFormStatus('', false);
+  }
+
+  function hideEditModal() {
+    if (!els.editModal) return;
+    document.body.classList.remove('modal-open');
+    els.editModal.classList.add('hidden');
+    state.editingId = null;
+  }
+
+  function fillEditForm(m) {
+    if (!els.editForm) return;
+    els.editForm.elements.date.value = m.date || '';
+    els.editForm.elements.competition.value = m.competition || '';
+    els.editForm.elements.home_team_name.value = m.home_team?.name || '';
+    els.editForm.elements.away_team_name.value = m.away_team?.name || '';
+    els.editForm.elements.home_score.value =
+      m.home_team && m.home_team.score != null ? m.home_team.score : '';
+    els.editForm.elements.away_score.value =
+      m.away_team && m.away_team.score != null ? m.away_team.score : '';
+  }
+
+  async function onSubmitEdit(e) {
+    e.preventDefault();
+    if (!state.editingId) {
+      hideEditModal();
+      return;
+    }
+    const fd = new FormData(els.editForm);
+    const payload = {
+      date: fd.get('date'),
+      competition: fd.get('competition'),
+      home_team_name: fd.get('home_team_name'),
+      away_team_name: fd.get('away_team_name'),
+    };
+    const hs = fd.get('home_score');
+    const as = fd.get('away_score');
+    if (hs !== '') payload.home_score = toNumberOrNull(hs);
+    if (as !== '') payload.away_score = toNumberOrNull(as);
+
+    try {
+      setEditFormStatus('Menyimpan...', false);
+      const res = await fetch('/api/matches/' + encodeURIComponent(state.editingId), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Gagal update (${res.status})`);
+      }
+      setEditFormStatus('Berhasil diperbarui', false);
+      hideEditModal();
+      await loadMatches();
+    } catch (err) {
+      console.error(err);
+      setEditFormStatus(err.message || 'Gagal update', true);
+    }
+  }
+
+  function setEditFormStatus(text, isError) {
+    if (!els.editFormStatus) return;
+    els.editFormStatus.textContent = text || '';
+    els.editFormStatus.className = 'status' + (isError ? ' error' : '');
+  }
+
+  function confirmAction(message, onOk) {
+    if (!els.confirmModal) {
+      if (window.confirm(message)) onOk();
+      return;
+    }
+    els.confirmMessage.textContent = message;
+    document.body.classList.add('modal-open');
+    els.confirmModal.classList.remove('hidden');
+
+    const cleanup = () => {
+      document.body.classList.remove('modal-open');
+      els.confirmModal.classList.add('hidden');
+      els.confirmOk.onclick = null;
+      els.confirmCancel.onclick = null;
+    };
+    els.confirmOk.onclick = () => {
+      cleanup();
+      onOk();
+    };
+    els.confirmCancel.onclick = cleanup;
   }
 })();
