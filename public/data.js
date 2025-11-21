@@ -119,6 +119,7 @@
       state.authed = true;
       state.user = { username };
       toggleAuthOverlay(false);
+      showAuthError('');
       setStatus('Login sebagai ' + username, false);
       await loadMatches();
     } catch (err) {
