@@ -431,6 +431,16 @@ app.get('/api/matches', (req, res) => {
   refreshMatchesIfChanged();
   normalizeAllMatches();
   const league = req.query.league;
+  const isAllRequested = ['1', 'true', 'yes', 'all'].includes(
+    String(req.query.all || '').toLowerCase()
+  );
+  if (isAllRequested) {
+    const matches = filterMatchesByLeague(matchData.matches || [], league).filter(
+      (m) => m && m.date
+    );
+    const sorted = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
+    return res.json({ last_updated: matchData.last_updated, matches: sorted });
+  }
   // Gunakan perbandingan berbasis UTC agar tidak meleset sehari akibat zona waktu.
   const now = new Date();
   const todayUTC = new Date(
@@ -660,6 +670,10 @@ Jawab HANYA JSON valid tanpa teks lain. Bahasa input bisa Indonesia.
 // Route utama: kirim index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '/public/index.html'));
+});
+
+app.get('/data', (req, res) => {
+  res.sendFile(path.join(__dirname, '/public/data.html'));
 });
 
 // ======================================

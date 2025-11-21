@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kelola Matches</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .admin-page { padding: 32px 16px; max-width: 1100px; margin: 0 auto; }
+    .admin-card { background: #0f1115; border: 1px solid #1f2430; border-radius: 14px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); margin-bottom: 18px; }
+    .admin-header { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .admin-title { margin: 0; font-size: 26px; }
+    .subtle { color: #b2b7c6; margin: 4px 0 0 0; }
+    .table-wrap { overflow-x: auto; border: 1px solid #1f2430; border-radius: 12px; }
+    table.matches-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    table.matches-table th, table.matches-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #1f2430; }
+    table.matches-table th { background: #181b22; color: #d9deea; position: sticky; top: 0; }
+    table.matches-table tr:hover { background: #151821; }
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #1f88ff1a; color: #cdd9ff; border: 1px solid #1f88ff40; font-size: 12px; }
+    .score { font-weight: 700; }
+    .actions { display: flex; gap: 8px; }
+    .btn { border: 1px solid #2b3345; background: #1b1f2a; color: #e6ebf5; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 600; }
+    .btn.primary { background: #2f7df3; border-color: #2f7df3; color: #fff; }
+    .btn.danger { border-color: #d24b4b; color: #ffdede; background: #2a1515; }
+    .btn.ghost { background: transparent; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    label.form-field { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+    label.form-field input, label.form-field select { padding: 10px 12px; border-radius: 8px; border: 1px solid #2b3345; background: #12141b; color: #e6ebf5; }
+    .status { margin-bottom: 10px; color: #9ad385; }
+    .status.error { color: #ff9c9c; }
+    .hidden { display: none; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+    .muted { color: #9aa0ad; font-size: 13px; }
+    @media (max-width: 640px) { .admin-header { flex-direction: column; align-items: flex-start; } }
+  </style>
+</head>
+<body>
+  <div class="admin-page">
+    <div class="admin-header">
+      <div>
+        <p class="eyebrow">Firestore Source</p>
+        <h1 class="admin-title">Kelola Data Matches</h1>
+        <p class="subtle">CRUD langsung ke Firestore. Data terbaru otomatis tersimpan.</p>
+      </div>
+      <div class="actions">
+        <a class="btn ghost" href="/">Kembali ke dashboard</a>
+        <button id="refreshBtn" class="btn">Refresh</button>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="toolbar">
+        <label class="muted">Filter by liga:
+          <input id="filterLeague" type="text" placeholder="contoh: Premier League" style="margin-left:6px;">
+        </label>
+        <span id="lastUpdated" class="muted">-</span>
+      </div>
+      <div id="statusBox" class="status"></div>
+      <div class="table-wrap">
+        <table class="matches-table">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Kompetisi</th>
+              <th>Home</th>
+              <th>Away</th>
+              <th>Skor</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="6">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-header">
+        <div>
+          <p class="eyebrow">Form</p>
+          <h2 id="formTitle" class="admin-title" style="font-size:22px;">Tambah Match</h2>
+        </div>
+        <div class="actions">
+          <button id="cancelEdit" class="btn ghost hidden" type="button">Batal Edit</button>
+        </div>
+      </div>
+      <div id="formStatus" class="status"></div>
+      <form id="matchForm">
+        <div class="form-grid">
+          <label class="form-field">
+            Tanggal
+            <input required type="date" name="date" />
+          </label>
+          <label class="form-field">
+            Kompetisi
+            <input required type="text" name="competition" placeholder="Premier League" />
+          </label>
+          <label class="form-field">
+            Home Team
+            <input required type="text" name="home_team_name" placeholder="Manchester United" />
+          </label>
+          <label class="form-field">
+            Away Team
+            <input required type="text" name="away_team_name" placeholder="Liverpool" />
+          </label>
+          <label class="form-field">
+            Skor Home (opsional)
+            <input type="number" name="home_score" placeholder="3" />
+          </label>
+          <label class="form-field">
+            Skor Away (opsional)
+            <input type="number" name="away_score" placeholder="0" />
+          </label>
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px;">
+          <button class="btn primary" type="submit" id="submitBtn">Simpan</button>
+          <button class="btn" type="button" id="resetFormBtn">Reset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script src="/data.js"></script>
+</body>
+</html>
