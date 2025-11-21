@@ -680,4 +680,7 @@ if (!process.env.VERCEL && require.main === module) {
     });
 }
 
-module.exports = { app, ready: bootstrap() };
+// Default export untuk runtime Vercel/Express preset harus fungsi/server.
+const exportedReady = bootstrap();
+module.exports = app;
+module.exports.ready = exportedReady;
