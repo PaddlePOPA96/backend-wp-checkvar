@@ -123,6 +123,11 @@
       toggleAuthOverlay(false);
       showAuthError('');
       setStatus('Login sebagai ' + username, false);
+      // pastikan overlay benar-benar hilang
+      if (els.authOverlay) {
+        els.authOverlay.classList.add('hidden');
+        els.authOverlay.style.display = 'none';
+      }
       await loadMatches();
     } catch (err) {
       console.error(err);
@@ -143,8 +148,10 @@
     if (!els.authOverlay) return;
     if (show) {
       els.authOverlay.classList.remove('hidden');
+      els.authOverlay.style.display = 'flex';
     } else {
       els.authOverlay.classList.add('hidden');
+      els.authOverlay.style.display = 'none';
       showAuthError('');
       if (els.authForm) els.authForm.reset();
     }
