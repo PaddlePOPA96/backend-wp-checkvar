@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tambah Match Baru</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">Input manual</p>
+        <h1>Tambah Match Baru</h1>
+      </div>
+      <a class="cta" href="/index.html">⬅ Kembali</a>
+    </header>
+
+    <div class="form-card">
+      <form method="POST" action="/api/matches">
+        <div class="form-grid">
+          <div>
+            <label for="date">Tanggal</label>
+            <input id="date" name="date" type="date" required />
+          </div>
+          <div>
+            <label for="competition">Liga / Kompetisi</label>
+            <input
+              id="competition"
+              name="competition"
+              type="text"
+              placeholder="England - Premier League"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label for="home_team_name">Home Team</label>
+            <input
+              id="home_team_name"
+              name="home_team_name"
+              type="text"
+              placeholder="Arsenal FC"
+              required
+            />
+          </div>
+          <div>
+            <label for="away_team_name">Away Team</label>
+            <input
+              id="away_team_name"
+              name="away_team_name"
+              type="text"
+              placeholder="Manchester United"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label for="home_score">Skor Home (opsional)</label>
+            <input
+              id="home_score"
+              name="home_score"
+              type="number"
+              min="0"
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label for="away_score">Skor Away (opsional)</label>
+            <input
+              id="away_score"
+              name="away_score"
+              type="number"
+              min="0"
+              placeholder="0"
+            />
+          </div>
+        </div>
+
+        <div class="button-block">
+          <button type="submit" class="primary full">Simpan Match</button>
+        </div>
+      </form>
+
+      <div id="successBox" class="notice-success" style="display: none">
+        Match berhasil disimpan 🎉
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tampilkan pesan sukses kalau URL mengandung ?success=1
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("success") === "1") {
+      document.getElementById("successBox").style.display = "block";
+    }
+  </script>
+</body>
+</html>

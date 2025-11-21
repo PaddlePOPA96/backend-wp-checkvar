@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hasil Pertandingan EPL</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">England - Premier League</p>
+            <h1>Hasil Pertandingan EPL 14 Hari Terakhir</h1>
+            <p class="lede">
+              Ringkasan 2 minggu terakhir dan jadwal terdekat. Data tersimpan di file lokal tanpa database.
+            </p>
+          </div>
+          <a class="cta" href="/add-match.html">+ Tambah manual</a>
+        </header>
+
+        <section class="ai-operator">
+          <div class="ai-header">
+            <div>
+              <p class="eyebrow">AI Operator</p>
+              <h2>Tambah lewat bahasa natural</h2>
+            </div>
+            <button id="aiSubmit" class="primary">Kirim ke Agent</button>
+          </div>
+          <textarea id="aiPrompt" rows="3" placeholder="contoh: Tambah jadwal Arsenal vs Brighton di Premier League tanggal 2024-09-18 jam 19:30, skor kosong."></textarea>
+          <div id="aiStatus" class="ai-status"></div>
+        </section>
+
+        <section id="live-section">
+          <div class="section-header">
+            <h2>Pertandingan Hari Ini</h2>
+          </div>
+          <div id="today-matches" class="results-grid"></div>
+        </section>
+
+        <section>
+          <div class="section-header">
+            <h2>Hasil 7 Hari Terakhir</h2>
+          </div>
+          <div id="last-matches" class="results-grid"></div>
+        </section>
+
+        <section>
+          <div class="section-header">
+            <h2>Jadwal 7 Hari Ke Depan</h2>
+          </div>
+          <div id="next-matches" class="results-grid next-schedule"></div>
+        </section>
+      </div>
+    <script src="script.js"></script>
+</body>
+</html>
