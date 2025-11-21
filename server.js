@@ -138,15 +138,16 @@ function loadMatches() {
           console.log('matches.json berhasil dimuat (Firestore).');
           return;
         }
-        console.log('Dokumen Firestore belum ada, fallback ke file lokal.');
-        loadMatchesFromFile();
+        console.log('Dokumen Firestore belum ada, pakai data kosong.');
+        matchData = { last_updated: null, matches: [] };
       })
       .catch((err) => {
-        console.warn('Gagal load Firestore, fallback ke file:', err.message);
-        loadMatchesFromFile();
+        console.warn('Gagal load Firestore:', err.message);
+        matchData = { last_updated: null, matches: [] };
       });
   }
-  loadMatchesFromFile();
+  // Jika Firestore tidak aktif, gunakan data kosong (bukan file) supaya bersih dari file lokal.
+  matchData = { last_updated: null, matches: [] };
   return Promise.resolve();
 }
 
@@ -158,6 +159,11 @@ function saveMatches(cb) {
   };
 
   const writeFile = () => {
+    if (useFirestore) {
+      // Saat Firestore aktif, kita tidak simpan ke file.
+      console.log('Skip menulis matches.json (modus Firestore).');
+      return finish(null);
+    }
     if (IS_READ_ONLY_FS) {
       // Di Vercel tidak bisa menulis ke disk; cukup log dan selesai.
       console.log('Skip menulis matches.json (read-only filesystem).');
