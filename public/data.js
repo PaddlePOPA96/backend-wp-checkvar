@@ -1,11 +1,11 @@
 (() => {
-  const state = { matches: [], editingId: null };
+  const state = { matches: [], editingId: null, authed: false, auth: null, user: null };
   const els = {};
 
   document.addEventListener('DOMContentLoaded', () => {
     cacheEls();
     bindEvents();
-    loadMatches();
+    initAuth();
   });
 
   function cacheEls() {
@@ -31,6 +31,17 @@
     els.confirmMessage = document.getElementById('confirmMessage');
     els.confirmOk = document.getElementById('confirmOk');
     els.confirmCancel = document.getElementById('confirmCancel');
+    // Auth
+    els.authOverlay = document.getElementById('authOverlay');
+    els.authEmail = document.getElementById('authEmail');
+    els.authPassword = document.getElementById('authPassword');
+    els.authSubmit = document.getElementById('authSubmit');
+    els.authError = document.getElementById('authError');
+    els.logoutBtn = document.getElementById('logoutBtn');
+    // AI
+    els.aiSubmit = document.getElementById('aiSubmit');
+    els.aiPrompt = document.getElementById('aiPrompt');
+    els.aiStatus = document.getElementById('aiStatus');
   }
 
   function bindEvents() {
@@ -55,9 +66,21 @@
     }
     if (els.closeEditModal) els.closeEditModal.addEventListener('click', hideEditModal);
     if (els.cancelEditModal) els.cancelEditModal.addEventListener('click', hideEditModal);
+    if (els.authSubmit) els.authSubmit.addEventListener('click', login);
+    if (els.logoutBtn) els.logoutBtn.addEventListener('click', logout);
+    if (els.aiSubmit) {
+      els.aiSubmit.addEventListener('click', (e) => {
+        e.preventDefault();
+        sendToAgent();
+      });
+    }
   }
 
   async function loadMatches() {
+    if (!state.authed) {
+      setStatus('Login terlebih dahulu', true);
+      return;
+    }
     setStatus('Memuat data...', false);
     try {
       const params = new URLSearchParams({ all: '1' });
@@ -79,6 +102,79 @@
       setStatus(err.message || 'Gagal memuat data', true);
       renderEmpty('Gagal memuat data');
     }
+  }
+
+  function initAuth() {
+    if (typeof firebase === 'undefined') {
+      showAuthError('Firebase SDK belum termuat.');
+      return;
+    }
+    if (window.firebaseConfig && firebase?.apps?.length === 0) {
+      try {
+        firebase.initializeApp(window.firebaseConfig);
+      } catch (err) {
+        console.error(err);
+        showAuthError('Konfigurasi Firebase tidak valid.');
+        return;
+      }
+    } else if (!window.firebaseConfig) {
+      showAuthError('Firebase config belum diisi di firebase-config.js');
+      return;
+    }
+    state.auth = firebase.auth();
+    state.auth.onAuthStateChanged((user) => {
+      state.user = user;
+      state.authed = !!user;
+      toggleAuthOverlay(!user);
+      if (user) {
+        setStatus('Login sebagai ' + (user.email || 'user'), false);
+        loadMatches();
+      } else {
+        setStatus('Login untuk melihat data', true);
+      }
+    });
+  }
+
+  async function login() {
+    if (!state.auth) {
+      showAuthError('Auth belum siap; periksa konfigurasi.');
+      return;
+    }
+    const email = (els.authEmail?.value || '').trim();
+    const pass = els.authPassword?.value || '';
+    if (!email || !pass) {
+      showAuthError('Email dan password wajib diisi.');
+      return;
+    }
+    try {
+      showAuthError('');
+      await state.auth.signInWithEmailAndPassword(email, pass);
+    } catch (err) {
+      console.error(err);
+      showAuthError(err.message || 'Login gagal');
+    }
+  }
+
+  async function logout() {
+    if (!state.auth) return;
+    try {
+      await state.auth.signOut();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  function toggleAuthOverlay(show) {
+    if (!els.authOverlay) return;
+    if (show) {
+      els.authOverlay.classList.remove('hidden');
+    } else {
+      els.authOverlay.classList.add('hidden');
+    }
+  }
+
+  function showAuthError(msg) {
+    if (els.authError) els.authError.textContent = msg || '';
   }
 
   function renderTable() {
@@ -376,5 +472,35 @@
       onOk();
     };
     els.confirmCancel.onclick = cleanup;
+  }
+
+  // AI agent
+  async function sendToAgent() {
+    if (!els.aiPrompt || !els.aiStatus) return;
+    const prompt = els.aiPrompt.value.trim();
+    if (!prompt) {
+      els.aiStatus.textContent = 'Tuliskan perintah terlebih dahulu.';
+      return;
+    }
+    els.aiStatus.textContent = 'Memproses perintah...';
+    try {
+      const res = await fetch('/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const detail = errBody.detail ? ` (${errBody.detail})` : '';
+        throw new Error((errBody.error || 'Gagal memproses permintaan AI') + detail);
+      }
+      await res.json();
+      els.aiStatus.textContent = 'Berhasil disimpan oleh AI ✅. Tampilan diperbarui.';
+      els.aiPrompt.value = '';
+      await loadMatches();
+    } catch (err) {
+      console.error(err);
+      els.aiStatus.textContent = err.message;
+    }
   }
 })();
