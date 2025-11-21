@@ -6,7 +6,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     cacheEls();
     bindEvents();
-    showAuthOverlay(true);
+    toggleAuthOverlay(true);
   });
 
   function cacheEls() {
@@ -37,6 +37,7 @@
     els.authEmail = document.getElementById('authEmail');
     els.authPassword = document.getElementById('authPassword');
     els.authSubmit = document.getElementById('authSubmit');
+    els.authForm = document.getElementById('authForm');
     els.authError = document.getElementById('authError');
     els.logoutBtn = document.getElementById('logoutBtn');
     // AI
@@ -67,7 +68,8 @@
     }
     if (els.closeEditModal) els.closeEditModal.addEventListener('click', hideEditModal);
     if (els.cancelEditModal) els.cancelEditModal.addEventListener('click', hideEditModal);
-    if (els.authSubmit) els.authSubmit.addEventListener('click', login);
+    if (els.authSubmit) els.authSubmit.addEventListener('click', (e) => { e.preventDefault(); login(); });
+    if (els.authForm) els.authForm.addEventListener('submit', (e) => { e.preventDefault(); login(); });
     if (els.logoutBtn) els.logoutBtn.addEventListener('click', logout);
     if (els.aiSubmit) {
       els.aiSubmit.addEventListener('click', (e) => {
@@ -141,6 +143,8 @@
       els.authOverlay.classList.remove('hidden');
     } else {
       els.authOverlay.classList.add('hidden');
+      showAuthError('');
+      if (els.authForm) els.authForm.reset();
     }
   }
 

@@ -54,18 +54,20 @@
     <div class="auth-card">
       <h2>Login</h2>
       <p class="subtle" style="margin:0 0 10px;">Masuk untuk mengelola data. Gunakan akun admin.</p>
-      <div id="authError" class="auth-error"></div>
-      <label>
-        Username
-        <input type="email" id="authEmail" autocomplete="username" />
-      </label>
-      <label>
-        Password
-        <input type="password" id="authPassword" autocomplete="current-password" />
-      </label>
-      <div class="auth-actions">
-        <button id="authSubmit" class="btn primary">Masuk</button>
-      </div>
+      <form id="authForm">
+        <div id="authError" class="auth-error"></div>
+        <label>
+          Username
+          <input type="text" id="authEmail" autocomplete="username" />
+        </label>
+        <label>
+          Password
+          <input type="password" id="authPassword" autocomplete="current-password" />
+        </label>
+        <div class="auth-actions">
+          <button id="authSubmit" type="submit" class="btn primary">Masuk</button>
+        </div>
+      </form>
     </div>
   </div>
 
