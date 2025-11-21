@@ -273,6 +273,7 @@ function levenshtein(a, b) {
 function findLogoPath(teamName, competition) {
   try {
     const resolvedName = aliasTeamName(teamName);
+    if (!resolvedName) return '';
     const leagues = fs
       .readdirSync(LOGO_ROOT, { withFileTypes: true })
       .filter((d) => d.isDirectory())
@@ -314,7 +315,22 @@ function findLogoPath(teamName, competition) {
 function ensureMatchLogos(match = {}) {
   const result = { ...match };
   result.competition = canonicalizeCompetition(result.competition);
+  const logoExists = (p) => {
+    if (!p) return false;
+    // Jika URL eksternal, biarkan saja.
+    if (/^https?:\/\//i.test(p)) return true;
+    const rel = p.startsWith('logo/') ? p.slice('logo/'.length) : p;
+    const joined = path.join(LOGO_ROOT, rel);
+    return fs.existsSync(joined);
+  };
   if (result.home_team && !result.home_team.logo_url) {
+    const nameForLogo = aliasTeamName(result.home_team.name);
+    result.home_team = {
+      ...result.home_team,
+      logo_url: findLogoPath(nameForLogo, result.competition) || '',
+    };
+  } else if (result.home_team && !logoExists(result.home_team.logo_url)) {
+    // Override logo yang tidak valid/berkas tidak ada.
     const nameForLogo = aliasTeamName(result.home_team.name);
     result.home_team = {
       ...result.home_team,
@@ -322,6 +338,12 @@ function ensureMatchLogos(match = {}) {
     };
   }
   if (result.away_team && !result.away_team.logo_url) {
+    const nameForLogo = aliasTeamName(result.away_team.name);
+    result.away_team = {
+      ...result.away_team,
+      logo_url: findLogoPath(nameForLogo, result.competition) || '',
+    };
+  } else if (result.away_team && !logoExists(result.away_team.logo_url)) {
     const nameForLogo = aliasTeamName(result.away_team.name);
     result.away_team = {
       ...result.away_team,
