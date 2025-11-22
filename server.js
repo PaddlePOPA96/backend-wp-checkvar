@@ -164,16 +164,15 @@ function saveMatches(cb) {
     if (cb) cb(err || null);
   };
 
-  const writeFile = () => {
-    if (useFirestore) {
-      // Saat Firestore aktif, kita tidak simpan ke file.
+  const writeFile = ({ allowWhenFirestoreActive = false, upstreamErr = null } = {}) => {
+    // Normalnya skip tulis file kalau Firestore aktif. Saat upstreamErr terisi, artinya fallback.
+    if (useFirestore && !allowWhenFirestoreActive) {
       console.log('Skip menulis matches.json (modus Firestore).');
-      return finish(null);
+      return finish(upstreamErr);
     }
     if (IS_READ_ONLY_FS) {
-      // Di Vercel tidak bisa menulis ke disk; cukup log dan selesai.
       console.log('Skip menulis matches.json (read-only filesystem).');
-      return finish(null);
+      return finish(upstreamErr);
     }
     fs.writeFile(MATCHES_FILE, JSON.stringify(matchData, null, 2), 'utf8', (err) => {
       if (err) return finish(err);
@@ -182,7 +181,7 @@ function saveMatches(cb) {
         lastLoadedMtimeMs = stat.mtimeMs;
       } catch (_) {}
       console.log('matches.json tersimpan.');
-      return finish(null);
+      return finish(upstreamErr);
     });
   };
 
@@ -192,11 +191,12 @@ function saveMatches(cb) {
       .set(matchData, { merge: true })
       .then(() => {
         console.log('Data tersimpan ke Firestore.');
-        writeFile();
+        finish(null);
       })
       .catch((err) => {
         console.error('Gagal simpan ke Firestore:', err.message);
-        writeFile();
+        // Pastikan request tidak dianggap sukses kalau Firestore gagal.
+        writeFile({ allowWhenFirestoreActive: true, upstreamErr: err });
       });
   } else {
     writeFile();
