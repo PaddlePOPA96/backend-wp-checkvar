@@ -10,14 +10,10 @@ const { initFirestoreFromEnv } = require('./firebase');
 const app = express();
 const port = process.env.PORT || 3000;
 
-const MATCHES_FILE = path.join(__dirname, 'matches.json');
 const LOGO_ROOT = path.join(__dirname, 'logo');
-// Vercel serverless filesystem is read-only; skip local writes there.
-const IS_READ_ONLY_FS = !!process.env.VERCEL;
 
 const norm = (s = '') => s.toLowerCase().replace(/\s+/g, '');
 const sanitize = (s = '') => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-let lastLoadedMtimeMs = 0;
 const generateId =
   crypto.randomUUID ||
   (() => 'm-' + Date.now() + '-' + Math.random().toString(16).slice(2));
@@ -117,20 +113,6 @@ function ensureMatchStructure(data) {
   };
 }
 
-function loadMatchesFromFile() {
-  try {
-    const stat = fs.statSync(MATCHES_FILE);
-    lastLoadedMtimeMs = stat.mtimeMs;
-    const raw = fs.readFileSync(MATCHES_FILE, 'utf8');
-    matchData = ensureMatchStructure(JSON.parse(raw));
-    matchData.matches = (matchData.matches || []).map(ensureMatchConsistency);
-    console.log('matches.json berhasil dimuat (file).');
-  } catch (err) {
-    console.error('Gagal load matches.json, pakai default kosong:', err.message);
-    matchData = { last_updated: null, matches: [] };
-  }
-}
-
 function loadMatches() {
   if (useFirestore && firestore) {
     console.log('Memuat data dari Firestore...');
@@ -152,7 +134,7 @@ function loadMatches() {
         matchData = { last_updated: null, matches: [] };
       });
   }
-  // Jika Firestore tidak aktif, gunakan data kosong (bukan file) supaya bersih dari file lokal.
+  // Jika Firestore tidak aktif, gunakan data kosong (tidak baca matches.json).
   matchData = { last_updated: null, matches: [] };
   return Promise.resolve();
 }
@@ -165,24 +147,9 @@ function saveMatches(cb) {
   };
 
   const writeFile = ({ allowWhenFirestoreActive = false, upstreamErr = null } = {}) => {
-    // Normalnya skip tulis file kalau Firestore aktif. Saat upstreamErr terisi, artinya fallback.
-    if (useFirestore && !allowWhenFirestoreActive) {
-      console.log('Skip menulis matches.json (modus Firestore).');
-      return finish(upstreamErr);
-    }
-    if (IS_READ_ONLY_FS) {
-      console.log('Skip menulis matches.json (read-only filesystem).');
-      return finish(upstreamErr);
-    }
-    fs.writeFile(MATCHES_FILE, JSON.stringify(matchData, null, 2), 'utf8', (err) => {
-      if (err) return finish(err);
-      try {
-        const stat = fs.statSync(MATCHES_FILE);
-        lastLoadedMtimeMs = stat.mtimeMs;
-      } catch (_) {}
-      console.log('matches.json tersimpan.');
-      return finish(upstreamErr);
-    });
+    // matches.json tidak lagi digunakan; skip penulisan file.
+    console.log('Persist lokal dilewati (mode Firestore saja).');
+    return finish(upstreamErr);
   };
 
   if (useFirestore && firestore) {
@@ -199,6 +166,7 @@ function saveMatches(cb) {
         writeFile({ allowWhenFirestoreActive: true, upstreamErr: err });
       });
   } else {
+    // Tanpa Firestore, data hanya hidup di memori.
     writeFile();
   }
 }
@@ -378,16 +346,7 @@ function normalizeAllMatches() {
 }
 
 function refreshMatchesIfChanged() {
-  if (useFirestore) return; // Firestore sebagai sumber utama, abaikan mtime file
-  try {
-    const stat = fs.statSync(MATCHES_FILE);
-    if (stat.mtimeMs > lastLoadedMtimeMs) {
-      console.log('Terdeteksi perubahan matches.json di disk, reload...');
-      loadMatches();
-    }
-  } catch (err) {
-    console.error('Gagal cek perubahan matches.json:', err.message);
-  }
+  // Tidak ada lagi sinkronisasi dari matches.json; Firestore adalah sumber utama.
 }
 
 function createTeam(name, score, competition, providedLogo) {
@@ -408,7 +367,6 @@ function createTeam(name, score, competition, providedLogo) {
 function addMatchFromObject(obj) {
   if (!obj) throw new Error('Payload kosong');
   const {
-    id,
     date,
     competition,
     home_team_name,
@@ -424,8 +382,9 @@ function addMatchFromObject(obj) {
   }
 
   const competitionCanonical = canonicalizeCompetition(competition);
+  const matchId = generateId(); // selalu pakai id acak untuk entri baru
   const match = {
-    id: id || generateId(),
+    id: matchId,
     date, // "YYYY-MM-DD"
     competition: competitionCanonical,
     home_team: createTeam(home_team_name, home_score, competitionCanonical, home_team_logo_url),

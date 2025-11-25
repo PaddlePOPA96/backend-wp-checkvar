@@ -48,38 +48,9 @@
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
     .hidden { display: none; }
     body.modal-open .admin-page { filter: blur(2px); }
-    /* Auth overlay */
-    .auth-overlay { position: fixed; inset:0; background: radial-gradient(circle at 20% 20%, rgba(47,125,243,0.12), transparent 40%), #0b0d12e6; display:flex; align-items:center; justify-content:center; z-index:30; }
-    .auth-card { background:#0f1115; border:1px solid #1f2430; border-radius:14px; padding:20px; width:min(420px, 92vw); box-shadow:0 16px 40px rgba(0,0,0,0.45); }
-    .auth-card h2 { margin:0 0 8px 0; }
-    .auth-card label { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
-    .auth-card input { padding:10px 12px; border-radius:8px; border:1px solid #2b3345; background:#12141b; color:#e6ebf5; }
-    .auth-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
-    .auth-error { color:#ff9c9c; min-height:18px; margin:4px 0; }
   </style>
 </head>
 <body>
-  <div id="authOverlay" class="auth-overlay">
-    <div class="auth-card">
-      <h2>Login</h2>
-      <p class="subtle" style="margin:0 0 10px;">Masuk untuk mengelola data. Gunakan akun admin.</p>
-      <form id="authForm">
-        <div id="authError" class="auth-error"></div>
-        <label>
-          Username
-          <input type="text" id="authEmail" autocomplete="username" />
-        </label>
-        <label>
-          Password
-          <input type="password" id="authPassword" autocomplete="current-password" />
-        </label>
-        <div class="auth-actions">
-          <button id="authSubmit" type="submit" class="btn primary">Masuk</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <div class="admin-page">
     <div class="admin-header">
       <div>
@@ -89,7 +60,6 @@
       </div>
       <div class="actions">
         <a class="btn ghost" href="/">Kembali ke dashboard</a>
-        <button id="logoutBtn" class="btn ghost" type="button">Logout</button>
         <button id="refreshBtn" class="btn">Refresh</button>
       </div>
     </div>

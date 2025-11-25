@@ -1,12 +1,11 @@
 (() => {
-  const ADMIN_HASH = '09ef66ca40880961950246d9a837f56aab469f3b70a1c9a89bdfc7a8f6d0789a'; // sha256("admin:adminadmin123")
-  const state = { matches: [], editingId: null, authed: false, user: null };
+  const state = { matches: [], editingId: null };
   const els = {};
 
   document.addEventListener('DOMContentLoaded', () => {
     cacheEls();
     bindEvents();
-    toggleAuthOverlay(true);
+    loadMatches();
   });
 
   function cacheEls() {
@@ -32,14 +31,6 @@
     els.confirmMessage = document.getElementById('confirmMessage');
     els.confirmOk = document.getElementById('confirmOk');
     els.confirmCancel = document.getElementById('confirmCancel');
-    // Auth
-    els.authOverlay = document.getElementById('authOverlay');
-    els.authEmail = document.getElementById('authEmail');
-    els.authPassword = document.getElementById('authPassword');
-    els.authSubmit = document.getElementById('authSubmit');
-    els.authForm = document.getElementById('authForm');
-    els.authError = document.getElementById('authError');
-    els.logoutBtn = document.getElementById('logoutBtn');
     // AI
     els.aiSubmit = document.getElementById('aiSubmit');
     els.aiPrompt = document.getElementById('aiPrompt');
@@ -68,9 +59,6 @@
     }
     if (els.closeEditModal) els.closeEditModal.addEventListener('click', hideEditModal);
     if (els.cancelEditModal) els.cancelEditModal.addEventListener('click', hideEditModal);
-    if (els.authSubmit) els.authSubmit.addEventListener('click', (e) => { e.preventDefault(); login(); });
-    if (els.authForm) els.authForm.addEventListener('submit', (e) => { e.preventDefault(); login(); });
-    if (els.logoutBtn) els.logoutBtn.addEventListener('click', logout);
     if (els.aiSubmit) {
       els.aiSubmit.addEventListener('click', (e) => {
         e.preventDefault();
@@ -80,10 +68,6 @@
   }
 
   async function loadMatches() {
-    if (!state.authed) {
-      setStatus('Login terlebih dahulu', true);
-      return;
-    }
     setStatus('Memuat data...', false);
     try {
       const params = new URLSearchParams({ all: '1' });
@@ -105,65 +89,6 @@
       setStatus(err.message || 'Gagal memuat data', true);
       renderEmpty('Gagal memuat data');
     }
-  }
-
-  async function login() {
-    const username = (els.authEmail?.value || '').trim();
-    const pass = els.authPassword?.value || '';
-    if (!username || !pass) {
-      showAuthError('Username dan password wajib diisi.');
-      return;
-    }
-    try {
-      showAuthError('Memeriksa...', false);
-      const hash = await sha256(`${username}:${pass}`);
-      if (hash !== ADMIN_HASH) throw new Error('Kredensial salah');
-      state.authed = true;
-      state.user = { username };
-      toggleAuthOverlay(false);
-      showAuthError('');
-      setStatus('Login sebagai ' + username, false);
-      // pastikan overlay benar-benar hilang
-      if (els.authOverlay) {
-        els.authOverlay.classList.add('hidden');
-        els.authOverlay.style.display = 'none';
-      }
-      await loadMatches();
-    } catch (err) {
-      console.error(err);
-      showAuthError(err.message || 'Login gagal');
-      // Alihkan ke halaman kosong jika gagal login
-      window.location.href = '/kosong.html';
-    }
-  }
-
-  async function logout() {
-    state.authed = false;
-    state.user = null;
-    toggleAuthOverlay(true);
-    setStatus('Logout', false);
-  }
-
-  function toggleAuthOverlay(show) {
-    if (!els.authOverlay) return;
-    if (show) {
-      els.authOverlay.classList.remove('hidden');
-      els.authOverlay.style.display = 'flex';
-    } else {
-      els.authOverlay.classList.add('hidden');
-      els.authOverlay.style.display = 'none';
-      showAuthError('');
-      if (els.authForm) els.authForm.reset();
-    }
-  }
-
-  // Backward alias for old references
-  function showAuthOverlay(show) {
-    toggleAuthOverlay(show);
-  }
-
-  function showAuthError(msg) {
-    if (els.authError) els.authError.textContent = msg || '';
   }
 
   function renderTable() {
@@ -493,13 +418,4 @@
     }
   }
 
-  async function sha256(str) {
-    const enc = new TextEncoder();
-    const buf = enc.encode(str);
-    const hash = await crypto.subtle.digest('SHA-256', buf);
-    const hex = Array.from(new Uint8Array(hash))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-    return hex;
-  }
 })();

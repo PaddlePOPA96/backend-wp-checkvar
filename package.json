@@ -1,7 +1,8 @@
 {
   "scripts": {
     "start": "node server.js",
-    "vercel-build": "echo \"skip build; functions only\""
+    "vercel-build": "echo \"skip build; functions only\"",
+    "seed:firestore": "node seed-firestore.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.9.0",
