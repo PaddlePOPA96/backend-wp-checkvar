@@ -402,11 +402,6 @@ select:focus {
     flex-direction: column;
     align-items: flex-start;
   }
-
-  .match-card {
-    text-align: center;
-  }
-
   .matchup-row {
     grid-template-columns: 1fr;
   }
@@ -417,5 +412,45 @@ select:focus {
 
   .match-meta {
     flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 16px 12px 32px;
+  }
+  .container {
+    padding: 18px;
+  }
+  .page-header {
+    gap: 10px;
+  }
+  h1 {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+  .cta {
+    width: 100%;
+    justify-content: center;
+  }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .results-grid {
+    gap: 10px;
+  }
+  .match-card {
+    flex: 0 0 200px;
+    text-align: center;
+  }
+  .logo-frame {
+    width: 58px;
+    height: 58px;
+  }
+  .logo-frame img {
+    width: 44px;
+    height: 44px;
   }
 }

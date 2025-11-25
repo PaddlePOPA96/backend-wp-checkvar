@@ -48,6 +48,20 @@
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
     .hidden { display: none; }
     body.modal-open .admin-page { filter: blur(2px); }
+    /* Mobile tweaks */
+    @media (max-width: 720px) {
+      .admin-page { padding: 20px 12px; }
+      .admin-card { padding: 16px; }
+      .admin-header { gap: 8px; }
+      .admin-title { font-size: 22px; }
+      .actions { flex-wrap: wrap; }
+      .toolbar { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .table-wrap { border-radius: 10px; }
+      table.matches-table { min-width: 100%; font-size: 14px; }
+      table.matches-table th, table.matches-table td { padding: 8px 10px; }
+      .form-grid { grid-template-columns: 1fr; }
+      textarea#aiPrompt { min-height: 110px; }
+    }
   </style>
 </head>
 <body>
